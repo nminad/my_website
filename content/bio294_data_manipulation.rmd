@@ -1,0 +1,282 @@
+---
+title: "Data Manipulation in R (BIO294)"
+author: "Nikos Minadakis"
+date: "10/11/2021"
+output: 
+  html_document:
+    df_print: paged
+    toc: true
+    number_sections: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/Documents/Project/Bio294_teaching/2021/2_Data_Manipulation_R/2_scripts/')
+```
+
+# **Getting started**
+
+----
+
+clean the environment
+```{r message=FALSE}
+rm(list = ls())
+```
+
+set working directory
+```{r message=FALSE, eval=FALSE}
+setwd()
+```
+
+libraries are sets of functions that expand the possibilities of base R
+```{r message=FALSE}
+library(tidyverse)
+```
+
+calculator
+```{r}
+1 + 3
+2 * 7
+```
+
+input data (arrows are assigning values to objects)
+```{r}
+Bdis <- read.csv('../1_data/Bdis_matrix.csv')
+```
+
+get help
+```{r}
+?read.csv
+```
+
+
+**the data set**
+
+# **Data preparation**
+
+----
+
+## *Data exploration*
+
+functions are always working on what is inside brackets.
+options are also defined there
+
+```{r}
+str(Bdis)
+```
+
+```{r}
+head(Bdis)
+```
+
+first row
+```{r}
+Bdis[1,]
+```
+
+first column (combined with head())
+```{r}
+head(Bdis[,1])
+```
+
+length of vector
+```{r}
+length(Bdis[,1])
+```
+
+combined
+```{r}
+Bdis[1,1]
+```
+
+the highest value for only one column
+```{r}
+max(Bdis$longitude)
+```
+
+what is the position of the highest value
+```{r}
+which.max(Bdis$longitude)
+```
+
+```{r}
+summary(Bdis)
+```
+
+### **as_tibble**
+
+```{r}
+Bdis.t <- as_tibble(Bdis)
+```
+
+```{r}
+Bdis.t
+```
+
+# **Data manipulation**
+
+----
+
+**dplyr**
+
+- filter
+- select
+- mutate
+- group_by
+- summarise
+
+**tidyr**
+
+- pivot_longer
+
+## *filter*
+
+filter rows
+```{r}
+filter(Bdis.t, cluster == "C")
+```
+
+### **%>% and %in%**
+
+- %>%(pipe): the output is used as input for the next function
+- %in%: this operator can be used to identify if an element belongs to a vector or dataframe
+```{r}
+Bdis.t %>%
+  filter(cluster == "C" & source == "ar_cs")
+```
+
+```{r}
+Bdis.t %>%
+  filter(cluster %in% c("C", "A_Italia"))
+```
+
+```{r}
+my_clusters <- c("C", "A_Italia")
+Bdis.t %>%
+  filter(cluster %in% my_clusters)
+```
+
+## *select*
+
+select columns
+```{r}
+Bdis.t %>%
+  select(names)
+```
+
+```{r}
+Bdis.t %>%
+  select(names, cluster)
+```
+
+### **starts_with, ends_with, contains**
+
+```{r}
+Bdis.t %>%
+  select(starts_with("B"))
+```
+
+```{r}
+Bdis.t %>%
+  select(ends_with("East"))
+```
+
+```{r}
+Bdis.t %>%
+  select(contains("names"))
+```
+
+```{r}
+Bdis.t %>%
+  select(contains("names"), cluster)
+```
+
+## *mutate*
+
+```{r}
+Bdis.t$names <- as.character(Bdis.t$names)
+Bdis.t$altern_names <- as.character(Bdis.t$altern_names)
+```
+
+### **ifelse** and **is.na**
+
+- ifelse('question', 'what happens if TRUE', 'what happens if FALSE')
+- is.na gives TRUE if the value is NA, and FALSE if not
+- mutate creates a new value in the data frame ('new_names')
+```{r}
+Bdis.t %>% 
+  mutate(new_names = ifelse(is.na(Bdis.t$altern_names), Bdis.t$names, Bdis.t$altern_names))
+```
+
+## *group_by* and *summarise*
+
+- group_by takes an existing table and converts it into a grouped table where operations are performed "by group".
+Grouping doesn't change how the data looks, it changes how it acts with the other dplyr verbs
+- summarise creates a new data_frame that has one row for each group variable
+```{r}
+Bdis.t %>%
+  group_by(cluster) %>%
+  summarise(max_lon = max(longitude))
+```
+
+
+n = n() creates a column in summary with a function (n) that writes the number
+```{r}
+Bdis.t %>%
+  group_by(cluster) %>%
+  summarise(max_lon = max(longitude),
+            min_lon = min(longitude),
+            mean_lon = mean(longitude),
+            n = n())
+```
+
+## *pivot_longer*
+
+pivot_longer lengthens data, increasing the number of rows and decreasing the number of columns
+```{r}
+Bdis_plot <- Bdis.t %>%
+  pivot_longer(names_to = "clade", cols = C:B_East, values_to = "percent")
+```
+
+### **visualize**
+
+choose one individual
+```{r}
+Bdis_plot <- Bdis.t %>%
+  pivot_longer(names_to = "clade", cols = C:B_East, values_to = "percent") %>%
+  filter(names == "Cb23")
+
+as_tibble(Bdis_plot)
+```
+
+color palette
+```{r}
+library(rcartocolor)
+my_palette_k5 <- c("violetred4",  "#21908CFF", "#75D054FF","#404688FF", "#FDE725FF")
+```
+
+bar plot and then pie chart
+```{r}
+Bdis_plot <- Bdis_plot %>%
+  ggplot(aes(x = "", y = percent, fill = clade)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0)
+```
+
+make it pretty
+```{r}
+Bdis_plot <- Bdis_plot +
+  scale_fill_manual(values = my_palette_k5) +
+  labs(x = NULL, y = NULL, title = "Cb23 ancestry proportions") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+visualize
+```{r}
+Bdis_plot
+```
