@@ -1,6 +1,6 @@
 ---
-title: "Main Title"
+title: ""
 output: html_document
 ---
 
-This will show up on the main page.
+This is my website. Welcome.

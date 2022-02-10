@@ -1,0 +1,6 @@
+---
+title: "About"
+output: html_document
+---
+
+This is my first attempt to make a website. It is pretty simple, but I'm getting there.

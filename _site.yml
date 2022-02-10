@@ -1,8 +1,10 @@
 navbar:
-  title: Title
+  title: Nikos Minadakis
   left:
   - text: Main page that links to files
     href: content.html
+  - text: About
+    href: about.html
 output:
   html_document:
     theme: cosmo
